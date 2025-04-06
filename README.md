@@ -1,1 +1,1 @@
-# Deforestation_Detection
+# Deforestation-Detection

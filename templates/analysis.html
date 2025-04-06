@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Deforestation Analysis Report</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-gradient-to-r from-green-50 to-emerald-100 text-gray-800 min-h-screen">
+  <div class="max-w-5xl mx-auto px-4 py-10">
+    <div class="text-center mb-10">
+      <h1 class="text-5xl font-extrabold text-emerald-700 mb-3">🌍 Environmental Analysis Dashboard</h1>
+      <p class="text-lg text-gray-600">Based on uploaded satellite image comparison</p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+      <div class="bg-white shadow-xl rounded-2xl p-6 text-center">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-2">Deforestation Rate</h2>
+        <p class="text-4xl font-bold text-red-500" id="rate">--%</p>
+      </div>
+      <div class="bg-white shadow-xl rounded-2xl p-6 text-center">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-2">Carbon Emissions</h2>
+        <p class="text-3xl font-bold text-gray-800"><span id="carbon">--</span> billion tons</p>
+      </div>
+      <div class="bg-white shadow-xl rounded-2xl p-6 text-center">
+        <h2 class="text-2xl font-semibold text-gray-700 mb-2">Future Forest Loss (10yr)</h2>
+        <p class="text-3xl font-bold text-yellow-600" id="future">--%</p>
+      </div>
+    </div>
+
+    <!-- Charts Section -->
+    
+      <div class="bg-white rounded-2xl shadow-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">🩺 Health Metrics</h2>
+        <canvas id="barChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Ring Charts -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-12">
+      <div class="bg-white shadow-md rounded-2xl p-4 text-center">
+        <h3 class="font-semibold text-lg mb-2">🦋 Biodiversity Loss</h3>
+        <canvas id="biodiversityChart"></canvas>
+      </div>
+      <div class="bg-white shadow-md rounded-2xl p-4 text-center">
+        <h3 class="font-semibold text-lg mb-2">💧 Water Impact</h3>
+        <canvas id="waterChart"></canvas>
+      </div>
+      <div class="bg-white shadow-md rounded-2xl p-4 text-center">
+        <h3 class="font-semibold text-lg mb-2">🌫️ Carbon Impact</h3>
+        <canvas id="carbonChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="bg-white shadow-lg rounded-2xl p-6">
+      <h2 class="text-2xl font-bold mb-4">📌 Recommendations</h2>
+      <ul class="list-disc ml-6 space-y-2 text-gray-700">
+        <li>Enhance satellite monitoring and real-time detection systems.</li>
+        <li>Invest in reforestation and forest preservation programs.</li>
+        <li>Adopt eco-friendly land use and agricultural practices.</li>
+      </ul>
+    </div>
+
+    <!-- Back Link -->
+    <div class="text-center mt-10">
+      <a href="/detect" class="text-emerald-700 hover:underline font-semibold">← Back to Detection</a>
+    </div>
+  </div>
+
+  <!-- Script -->
+  <script>
+    const rate = parseFloat(localStorage.getItem('deforestation_rate') || '0');
+    
+    const carbon = (rate * 0.3).toFixed(3); // billion tons CO2
+    const futureLoss = Math.min(rate * 2, 100).toFixed(3); // 10-year forecast
+
+    // Update summary values
+    document.getElementById('rate').innerText = rate.toFixed(3) + '%';
+    document.getElementById('carbon').innerText = carbon;
+    document.getElementById('future').innerText = futureLoss + '%';
+
+    // Health score generator (based on environmental degradation weight)
+    function calcScore(weight) {
+      return Math.max(100 - rate * weight, 0).toFixed(1);
+    }
+
+    const scores = {
+      air: calcScore(1.2),
+      soil: calcScore(1.0),
+      water: calcScore(1.4),
+      biodiversity: calcScore(1.6)
+    };
+
+    // Forest cover line chart
+    
+
+    // Environmental Health - Bar Chart
+    new Chart(document.getElementById("barChart"), {
+      type: 'bar',
+      data: {
+        labels: ['Air Quality', 'Soil Health', 'Water Retention', 'Biodiversity'],
+        datasets: [{
+          label: 'Health Score',
+          data: [scores.air, scores.soil, scores.water, scores.biodiversity],
+          backgroundColor: ['#60A5FA', '#FBBF24', '#34D399', '#F87171']
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100
+          }
+        }
+      }
+    });
+
+    // Doughnut chart generator
+    function createDoughnut(id, value, color) {
+      new Chart(document.getElementById(id), {
+        type: 'doughnut',
+        data: {
+          labels: ['Impact', 'Remaining'],
+          datasets: [{
+            data: [value, 100 - value],
+            backgroundColor: [color, '#E5E7EB']
+          }]
+        },
+        options: {
+          cutout: '70%',
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    // Doughnut charts - Visualize impact severity
+    createDoughnut('biodiversityChart', Math.min(rate * 1.6, 100).toFixed(3), '#F87171');
+    createDoughnut('waterChart', Math.min(rate * 1.4, 100).toFixed(3), '#60A5FA');
+    createDoughnut('carbonChart', Math.min(rate * 0.5, 100).toFixed(3), '#9CA3AF');
+  </script>
+</body>
+</html>

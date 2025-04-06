@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Deforestation Detection</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/noUiSlider@14.7.0/distribute/nouislider.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/noUiSlider@14.7.0/distribute/nouislider.min.css"/>
+  <style>
+    .comparison-container {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      overflow: hidden;
+      border-radius: 8px;
+    }
+    .comparison-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .slider {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 4px;
+      height: 100%;
+      background-color: #fff;
+      cursor: pointer;
+    }
+    .slider-circle {
+      position: absolute;
+      top: 50%;
+      left: -10px;
+      width: 20px;
+      height: 20px;
+      background-color: #fff;
+      border-radius: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen">
+
+  <div class="p-6 rounded-lg shadow-lg w-full max-w-2xl bg-white">
+    <h1 class="text-3xl font-bold text-center mb-4">🌿 Deforestation Detection</h1>
+
+    <form id="upload-form" enctype="multipart/form-data" class="space-y-4">
+      <label class="block font-semibold">Before Image</label>
+      <input type="file" name="before" id="before-input" class="w-full p-2 border rounded" required>
+
+      <label class="block font-semibold">After Image</label>
+      <input type="file" name="after" id="after-input" class="w-full p-2 border rounded" required>
+
+      <button type="submit" class="bg-blue-500 text-white w-full py-2 rounded hover:bg-blue-600 transition">Detect</button>
+    </form>
+
+    <!-- Live Preview -->
+    <div class="mt-4">
+      <h3 class="text-lg font-semibold">Live Preview</h3>
+      <div class="flex justify-center space-x-4">
+        <img id="before-img" class="w-40 h-40 object-cover border rounded" alt="Before Image">
+        <img id="after-img" class="w-40 h-40 object-cover border rounded" alt="After Image">
+      </div>
+    </div>
+
+    <!-- Before-After Image Comparison -->
+    <div class="mt-6">
+      <h3 class="text-lg font-semibold">Before-After Comparison</h3>
+      <div class="comparison-container mx-auto mt-4">
+        <img id="comparison-before" class="comparison-image" alt="">
+        <img id="comparison-after" class="comparison-image" style="clip-path: inset(0 50% 0 0);" alt="">
+        <div id="comparison-slider" class="slider">
+          <div class="slider-circle"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="mt-6">
+      <h2 class="text-lg font-bold">Results</h2>
+      <p id="result" class="text-lg font-semibold text-gray-700"></p>
+      <div class="bg-gray-200 rounded-full h-4 mt-2 overflow-hidden">
+        <div id="progress-bar" class="bg-green-500 h-4 rounded-full w-0 transition-all"></div>
+      </div>
+    </div>
+
+    <!-- Deforestation Highlighted Image -->
+    <div class="mt-6">
+      <h3 class="text-lg font-semibold">Deforestation Highlighted</h3>
+      <img id="diff-img" class="w-full border rounded" src="">
+    </div>
+
+    <!-- Analysis Button -->
+    <div class="mt-4 text-center hidden" id="analysis-section">
+      <a href="/analysis" class="inline-block bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 transition">
+        View Analysis
+      </a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('upload-form').onsubmit = async function (event) {
+      event.preventDefault();
+      let formData = new FormData(this);
+
+      let response = await fetch('/detect', {
+        method: 'POST',
+        body: formData
+      });
+
+      let result = await response.json();
+
+      // Display and store result
+      const rate = result.deforestation_rate;
+      document.getElementById("result").innerText = "Deforestation Rate: " + rate + "%";
+      document.getElementById("diff-img").src = result.image;
+      document.getElementById("progress-bar").style.width = rate + "%";
+      document.getElementById("analysis-section").classList.remove("hidden");
+
+      // Save result to localStorage
+      
+      let rrate=rate;localStorage.setItem("deforestation_rate", rate);
+
+      // Update images for comparison
+      let beforeFile = document.getElementById('before-input').files[0];
+      let afterFile = document.getElementById('after-input').files[0];
+
+      if (beforeFile) {
+        let reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById("before-img").src = e.target.result;
+          document.getElementById("comparison-before").src = e.target.result;
+        };
+        reader.readAsDataURL(beforeFile);
+      }
+
+      if (afterFile) {
+        let reader = new FileReader();
+        reader.onload = function (e) {
+          document.getElementById("after-img").src = e.target.result;
+          document.getElementById("comparison-after").src = e.target.result;
+        };
+        reader.readAsDataURL(afterFile);
+      }
+    };
+
+    // Image Slider Logic
+    const slider = document.getElementById("comparison-slider");
+    const afterImg = document.getElementById("comparison-after");
+    const comparisonContainer = document.querySelector(".comparison-container");
+
+    let isDragging = false;
+
+    slider.addEventListener("mousedown", () => isDragging = true);
+    document.addEventListener("mouseup", () => isDragging = false);
+    document.addEventListener("mousemove", (event) => {
+      if (!isDragging) return;
+
+      let containerRect = comparisonContainer.getBoundingClientRect();
+      let offsetX = event.clientX - containerRect.left;
+      let percentage = (offsetX / containerRect.width) * 100;
+
+      percentage = Math.max(0, Math.min(100, percentage));
+      slider.style.left = percentage + "%";
+      afterImg.style.clipPath = `inset(0 ${100 - percentage}% 0 0)`;
+    });
+  </script>
+</body>
+</html>
