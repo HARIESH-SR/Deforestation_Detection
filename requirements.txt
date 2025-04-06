@@ -1,4 +1,5 @@
 Flask
 opencv-python
+livereload
 numpy
 gunicorn
